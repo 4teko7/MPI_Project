@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 
 
 
-        int i = (stoi(A) + 1);
+        int i = amountOfLineForSlaves * (stoi(A) + 1);
         while (getline(input, line))
         {
             // vector<float> matrix;
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
                 try
                 {
                     // matrix.push_back(stoi(variable));
-                    // cout << stoi(variable) << " ";
+                    cout << stoi(variable) << " ";
                     arr[i++] = stof(variable);
                 }
                 catch (exception e)
@@ -91,11 +91,23 @@ int main(int argc, char *argv[])
             MPI_Scatter(arr,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,pref,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,0,MPI_COMM_WORLD);
 
     
-    if (rank == 1) {
+    if (rank != 0) {
+        float W[A];
+        for (int i = 0; i < A; i++)
+            W[i] = 0;
+
+        for (int i = 1; i < M; i++){
+                        
+        }
+        
+        
         int i = 0;
             for(; i<amountOfLineForSlaves * (stoi(A) + 1);i++){
                 printf("Process Numb %d and %d th element of my list is %f\n",rank,i+1,pref[i] );
             }
+
+                cout << P << " " << N << " " << A << " " << M << " " << T << endl;
+
     }
 
 
