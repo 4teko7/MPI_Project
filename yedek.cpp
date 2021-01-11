@@ -13,7 +13,6 @@ ifstream input;
 void printMatrix();
 void printArray(float arr[], int size, int lineSize);
 void printArrayTwo(vector<vector<float>> matrix);
-pair<int, int> findIndexOfMiss(vector<vector<float>> matrix, int index);
 int main(int argc, char *argv[])
 {
     int rank; // rank of the current processor
@@ -38,18 +37,22 @@ int main(int argc, char *argv[])
         int dataLineNumber = stoi(N);
         int slaveNumber = stoi(P) - 1;
         int amountOfLineForSlaves = dataLineNumber / slaveNumber;
-        float arr[dataLineNumber * (stoi(A) + 1) + (stoi(A) + 1) + amountOfLineForSlaves * (stoi(A) + 1)];
-        float pref[amountOfLineForSlaves * (stoi(A) + 1)];
-        vector<vector<float>> mainMatrix;
+        float arr[dataLineNumber+amountOfLineForSlaves][stoi(A) + 1];
+        vector<vector<float>> matrix;
+        vector<vector<float>> pref;
+        // float pref[amountOfLineForSlaves][stoi(A) + 1];
+
     if(rank == 0){
         
 
-        for(int j = 0; j<(stoi(A) + 1);j++)
-            arr[j]=0;
+        // for(int i = 0; i < dataLineNumber + 1;i++)
+        //     for(int j = 0; j<(stoi(A) + 1);j++)
+        //         arr[i][j]=0;
 
 
 
-        int i = amountOfLineForSlaves * (stoi(A) + 1);
+        int i = amountOfLineForSlaves;
+        int j = 0;
         while (getline(input, line))
         {
             vector<float> linematrix;
@@ -63,9 +66,10 @@ int main(int argc, char *argv[])
                 ss >> variable;
                 try
                 {
+                    // matrix.push_back(stoi(variable));
+                    // cout << stof(variable) << " ";
+                    // arr[i][j++] = stof(variable);
                     linematrix.push_back(stof(variable));
-                    // cout << stoi(variable) << " ";
-                    arr[i++] = stof(variable);
                 }
                 catch (exception e)
                 {
@@ -73,9 +77,10 @@ int main(int argc, char *argv[])
                 }
             } while (ss);
                 cout << endl;
-                mainMatrix.push_back(linematrix);
-                linematrix.clear();
-
+            i++;
+            j=0;
+            matrix.push_back(linematrix);
+            linematrix.clear();
         }
         
         // printArray(arr,dataLineNumber * (stoi(A) + 1) + (stoi(A) + 1),(stoi(A) + 1));
@@ -90,40 +95,12 @@ int main(int argc, char *argv[])
         //         linesOfSlave.push_back(matrix[j]);
         //     }
 
-            MPI_Scatter(arr,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,pref,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,0,MPI_COMM_WORLD);
+        printArrayTwo(matrix);
     }
-
+            MPI_Scatter(*matrix,amountOfLineForSlaves,MPI_FLOAT,pref,amountOfLineForSlaves,MPI_FLOAT,0,MPI_COMM_WORLD);
 
     
     if (rank == 1) {
-        vector<vector<float>> matrix;
-        vector<float> lineMatrix;
-        int count = 0;
-        for(int i = 0; i<amountOfLineForSlaves; i++){
-            for (int j = 0; j < (stoi(A) + 1); j++) {
-                lineMatrix.push_back(pref[count++]);
-            }
-            matrix.push_back(lineMatrix);
-            lineMatrix.clear();
-            
-            // printf("Process Numb %d and %d th element of my list is %f\n",rank,i+1,pref[i] );
-        }
-
-        for (int i = 0; i < stoi(M); i++) {
-            pair<int, int> hitAndMissIndexes = findIndexOfMiss(matrix,i);
-            // cout << hitAndMissIndexes.first << " " << hitAndMissIndexes.second << endl;
-        }
-        
-
-
-
-
-
-        printArrayTwo(matrix);
-        printArrayTwo(mainMatrix);
-
-
-
         // float W[A];
         // for (int i = 0; i < A; i++)
         //     W[i] = 0;
@@ -133,12 +110,15 @@ int main(int argc, char *argv[])
         // }
         
         
-        // int i = 0;
-        //     for(; i<amountOfLineForSlaves * (stoi(A) + 1);i++){
-        //         printf("Process Numb %d and %d th element of my list is %f\n",rank,i+1,pref[i] );
-        //     }
+        
+            // for(int i = 0; i<amountOfLineForSlaves;i++){
+            //     for(int j = 0; j< (stoi(A) + 1);j++){
+            //         printf("element is %f\n", pref[i][j] );
+            //         printf("ARR: %f\n",arr[i][j] );
+            //     }
+            // }
 
-        //         cout << P << " " << N << " " << A << " " << M << " " << T << endl;
+                // cout << P << " " << N << " " << A << " " << M << " " << T << endl;
 
     }
 
@@ -187,6 +167,8 @@ void printMatrix(){
     for(int k=0; k<matrix.size(); k++){
                 cout << matrix[k]<<"\n";
         }
+
+        
 }
 
 void printArray(float arr[], int size, int lineSize){
@@ -215,35 +197,3 @@ void printArrayTwo(vector<vector<float>> matrix){
 
 }
 
-pair<int, int> findIndexOfMiss(vector<vector<float>> matrix, int index){
-    float minOfHit = INT16_MAX;
-    float minOfMiss = INT16_MAX;
-    float sumOfHit = INT16_MAX;
-    float sumOfMiss = INT16_MAX;
-    int indexOfHit = 0;
-    int indexOfMiss = 0;
-
-
-    for (int i = 0; i < matrix.size(); i++) {
-        float sumOfHitTmp = 0;
-        float sumOfMissTmp = 0;
-        for (int j = 0; j < matrix.size(); j++) {
-            if(i != index && matrix[index][matrix[index].size() - 1] == matrix[i][matrix[index].size() - 1]) { //HIT
-                sumOfHitTmp += abs(matrix[index][j] -  matrix[i][j]);
-            } else if(i != index && matrix[index][matrix[index].size() - 1] != matrix[i][matrix[index].size() - 1]){ //MISS
-                sumOfMissTmp += abs(matrix[index][j] -  matrix[i][j]);
-            }
-        }
-        if(sumOfHit > sumOfHitTmp) {
-            sumOfHit = sumOfHitTmp;
-            indexOfHit = i;
-        }
-        if(sumOfMiss > sumOfMissTmp){
-            sumOfMiss = sumOfMissTmp;
-            indexOfMiss = i;
-        }
-    }
-
-    return make_pair(indexOfHit,indexOfMiss);
-    
-}
