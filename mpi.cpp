@@ -38,21 +38,18 @@ int main(int argc, char *argv[])
         int dataLineNumber = stoi(N);
         int slaveNumber = stoi(P) - 1;
         int amountOfLineForSlaves = dataLineNumber / slaveNumber;
-        float arr[dataLineNumber * (stoi(A) + 1) + (stoi(A) + 1) + amountOfLineForSlaves * (stoi(A) + 1)];
+        float arr[dataLineNumber * (stoi(A) + 1) + amountOfLineForSlaves * (stoi(A) + 1)];
         float pref[amountOfLineForSlaves * (stoi(A) + 1)];
-        vector<vector<float>> mainMatrix;
+    
     if(rank == 0){
         
 
-        for(int j = 0; j<(stoi(A) + 1);j++)
+        for(int j = 0; j< dataLineNumber * (stoi(A) + 1) + amountOfLineForSlaves * (stoi(A) + 1);j++)
             arr[j]=0;
-
-
 
         int i = amountOfLineForSlaves * (stoi(A) + 1);
         while (getline(input, line))
         {
-            vector<float> linematrix;
 
             stringstream ss(line);
             do
@@ -63,39 +60,31 @@ int main(int argc, char *argv[])
                 ss >> variable;
                 try
                 {
-                    linematrix.push_back(stof(variable));
-                    // cout << stoi(variable) << " ";
+                    // cout << stof(variable) << " ";
                     arr[i++] = stof(variable);
                 }
                 catch (exception e)
                 {
+                    cout << "hata var" << endl;
                     break;
                 }
             } while (ss);
-                cout << endl;
-                mainMatrix.push_back(linematrix);
-                linematrix.clear();
+                // cout << endl;
 
         }
+            input.close();
         
-        // printArray(arr,dataLineNumber * (stoi(A) + 1) + (stoi(A) + 1),(stoi(A) + 1));
-        // printArray(arr);
-        input.close();
-
-
-
-        // for (int i = 0; i < slaveNumber; i++){
-        //     for (int j = 0; j < amountOfLineForSlaves; j++){
-        //         vector<string> linesOfSlave;
-        //         linesOfSlave.push_back(matrix[j]);
-        //     }
-
-            MPI_Scatter(arr,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,pref,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,0,MPI_COMM_WORLD);
     }
+            MPI_Scatter(arr,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,pref,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,0,MPI_COMM_WORLD);
 
 
     
-    if (rank == 1) {
+    if (rank != 0) {
+        // for(int i = 0; i<amountOfLineForSlaves * (stoi(A) + 1); i++){
+      
+        //     cout << "rank : " << rank << " - " << pref[i] << endl;
+        // }
+
         vector<vector<float>> matrix;
         vector<float> lineMatrix;
         int count = 0;
@@ -115,32 +104,9 @@ int main(int argc, char *argv[])
         }
         
 
-
-
-
-
         printArrayTwo(matrix);
-        printArrayTwo(mainMatrix);
 
-
-
-        // float W[A];
-        // for (int i = 0; i < A; i++)
-        //     W[i] = 0;
-
-        // for (int i = 1; i < M; i++){
-                        
-        // }
-        
-        
-        // int i = 0;
-        //     for(; i<amountOfLineForSlaves * (stoi(A) + 1);i++){
-        //         printf("Process Numb %d and %d th element of my list is %f\n",rank,i+1,pref[i] );
-        //     }
-
-        //         cout << P << " " << N << " " << A << " " << M << " " << T << endl;
-
-    }
+    } 
 
 
     // int pref[N]; // stores preferences of each // local disk on processors
