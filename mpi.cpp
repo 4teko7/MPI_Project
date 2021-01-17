@@ -6,13 +6,16 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
-
+#include<bits/stdc++.h> 
 using namespace std;
 vector<string> matrix;
 ifstream input;
 void printMatrix();
 void printArray(float arr[], int size, int lineSize);
 void printArrayTwo(vector<vector<float>> matrix);
+void printSingleMatrix(float matrix[], int size);
+void printVectorOfPairs(vector<pair<float,float>> vectorOfPairs);
+vector<pair<float,float>> getMaxsAndMinsInMatrix(vector<vector<float>> matrix);
 pair<int, int> findIndexOfMiss(vector<vector<float>> matrix, int index);
 int main(int argc, char *argv[])
 {
@@ -79,11 +82,12 @@ int main(int argc, char *argv[])
 
 
     
-    if (rank != 0) {
-        // for(int i = 0; i<amountOfLineForSlaves * (stoi(A) + 1); i++){
-      
-        //     cout << "rank : " << rank << " - " << pref[i] << endl;
-        // }
+    if (rank == 5) {
+        vector<pair<float, float>> W;
+        // float W[stoi(A)]
+        for (int i = 0; i < stoi(A); i++) {
+            W.push_back(make_pair(0,i));
+        }
 
         vector<vector<float>> matrix;
         vector<float> lineMatrix;
@@ -95,19 +99,42 @@ int main(int argc, char *argv[])
             matrix.push_back(lineMatrix);
             lineMatrix.clear();
             
-            // printf("Process Numb %d and %d th element of my list is %f\n",rank,i+1,pref[i] );
         }
-
-        for (int i = 0; i < stoi(M); i++) {
-            pair<int, int> hitAndMissIndexes = findIndexOfMiss(matrix,i);
-            // cout << hitAndMissIndexes.first << " " << hitAndMissIndexes.second << endl;
+        vector<pair<float,float>> maxsAndMins = getMaxsAndMinsInMatrix(matrix);
+        for (int i = 0; i < maxsAndMins.size(); i++)
+        {
+            cout << "MAX MIN : " << maxsAndMins[i].first << " " << maxsAndMins[i].second << endl;
         }
         
+        cout << endl;
+        for (int i = 0; i < stoi(M); i++) {
+            pair<int, int> hitAndMissIndexes = findIndexOfMiss(matrix,i);
+            cout << "HIT INDEX : " << hitAndMissIndexes.first << " - MISS INDEX : " << hitAndMissIndexes.second << endl;
+            for (int j = 0; j < stoi(A); j++) {
+                float hitPart = 0;
+                float missPart = 0;
+                if(hitAndMissIndexes.first != -1){
+                    hitPart = (abs(matrix[i][j] - matrix[hitAndMissIndexes.first][j]) / (maxsAndMins[j].second - maxsAndMins[j].first)) / stoi(M);
+                }
+                if(hitAndMissIndexes.second != -1) {
+                    missPart = (abs(matrix[i][j] - matrix[hitAndMissIndexes.second][j]) / (maxsAndMins[j].second - maxsAndMins[j].first)) / stoi(M);
+                }
+                cout << "HIT RESULT : " << hitPart << " - MISS RESULT : " << missPart << endl;
+                W[j].first = W[j].first - hitPart + missPart;
+                // printSingleMatrix(W,stoi(A));
+            }
+            cout << endl;
+        }
+        
+        // printArrayTwo(matrix);
+        cout << " A: " << stoi(A) << endl;
+        sort(W.begin(), W.end());
+        printVectorOfPairs(W);
+        // printSingleMatrix(W,stoi(A));
+    }
 
-        printArrayTwo(matrix);
 
-    } 
-
+    
 
     // int pref[N]; // stores preferences of each // local disk on processors
 
@@ -151,8 +178,24 @@ int main(int argc, char *argv[])
 
 void printMatrix(){
     for(int k=0; k<matrix.size(); k++){
-                cout << matrix[k]<<"\n";
+            cout << matrix[k]<<"\n";
         }
+}
+
+void printSingleMatrix(float matrix[], int size){
+    cout << "************ SINGLE MATRIX *****************" << endl;
+    for(int k=0; k<size; k++){
+        cout << matrix[k]<<"\n";
+    }
+    cout << "************ END OF SINGLE MATRIX *****************" << endl;
+}
+
+void printVectorOfPairs(vector<pair<float,float>> vectorOfPairs){
+    cout << "************ SINGLE MATRIX *****************" << endl;
+    for(int k=0; k<vectorOfPairs.size(); k++){
+        cout << "FIRST: " << vectorOfPairs[k].first << " - SECOND: " << vectorOfPairs[k].second <<"\n";
+    }
+    cout << "************ END OF SINGLE MATRIX *****************" << endl;
 }
 
 void printArray(float arr[], int size, int lineSize){
@@ -186,9 +229,8 @@ pair<int, int> findIndexOfMiss(vector<vector<float>> matrix, int index){
     float minOfMiss = INT16_MAX;
     float sumOfHit = INT16_MAX;
     float sumOfMiss = INT16_MAX;
-    int indexOfHit = 0;
-    int indexOfMiss = 0;
-
+    int indexOfHit = -1;
+    int indexOfMiss = -1;
 
     for (int i = 0; i < matrix.size(); i++) {
         float sumOfHitTmp = 0;
@@ -200,11 +242,11 @@ pair<int, int> findIndexOfMiss(vector<vector<float>> matrix, int index){
                 sumOfMissTmp += abs(matrix[index][j] -  matrix[i][j]);
             }
         }
-        if(sumOfHit > sumOfHitTmp) {
+        if(sumOfHit > sumOfHitTmp && sumOfHitTmp != 0) {
             sumOfHit = sumOfHitTmp;
             indexOfHit = i;
         }
-        if(sumOfMiss > sumOfMissTmp){
+        if(sumOfMiss > sumOfMissTmp && sumOfMissTmp != 0){
             sumOfMiss = sumOfMissTmp;
             indexOfMiss = i;
         }
@@ -212,4 +254,21 @@ pair<int, int> findIndexOfMiss(vector<vector<float>> matrix, int index){
 
     return make_pair(indexOfHit,indexOfMiss);
     
+}
+
+vector<pair<float,float>> getMaxsAndMinsInMatrix(vector<vector<float>> matrix) {
+    vector<pair<float,float>> maxsAndMins;
+    float minInCol = INT16_MAX;
+    float maxInCol = INT16_MIN;
+    for (int i = 0; i < matrix[0].size() - 1; i++) {
+        for (int j = 0; j < matrix.size(); j++) {
+            if(minInCol > matrix[j][i]) minInCol = matrix[j][i];
+            if(maxInCol < matrix[j][i]) maxInCol = matrix[j][i];
+        }
+        maxsAndMins.push_back(make_pair(minInCol,maxInCol));
+        minInCol = INT16_MAX;
+        maxInCol = INT16_MIN;
+    }
+
+    return maxsAndMins;
 }
