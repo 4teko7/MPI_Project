@@ -16,8 +16,10 @@ void printArrayTwo(vector<vector<float>> matrix);
 void printSingleMatrix(int matrix[], int size,int rank);
 void printVectorOfPairs(vector<pair<float,float>> vectorOfPairs);
 void printVector(vector<float> vect,int rank);
+void printResult(int matrix[], int size);
 vector<pair<float,float>> getMaxsAndMinsInMatrix(vector<vector<float>> matrix);
 pair<int, int> findIndexOfMiss(vector<vector<float>> matrix, int index);
+
 int main(int argc, char *argv[])
 {
     int rank; // rank of the current processor
@@ -44,7 +46,7 @@ int main(int argc, char *argv[])
         int amountOfLineForSlaves = dataLineNumber / slaveNumber;
         float arr[dataLineNumber * (stoi(A) + 1) + amountOfLineForSlaves * (stoi(A) + 1)];
         float pref[amountOfLineForSlaves * (stoi(A) + 1)];
-    
+        int weightIds[stoi(T) * slaveNumber];
     if(rank == 0){
         
 
@@ -82,62 +84,68 @@ int main(int argc, char *argv[])
             MPI_Scatter(arr,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,pref,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,0,MPI_COMM_WORLD);
 
 
-    
-    if (rank != 0) {
-        vector<pair<float, float>> W;
-        // float W[stoi(A)]
-        for (int i = 0; i < stoi(A); i++) {
-            W.push_back(make_pair(0,i));
-        }
-
-        vector<vector<float>> matrix;
-        vector<float> lineMatrix;
-        int count = 0;
-        for(int i = 0; i<amountOfLineForSlaves; i++){
-            for (int j = 0; j < (stoi(A) + 1); j++) {
-                lineMatrix.push_back(pref[count++]);
+        if (rank != 0) {
+            vector<pair<float, float>> W;
+            // float W[stoi(A)]
+            for (int i = 0; i < stoi(A); i++) {
+                W.push_back(make_pair(0,i));
             }
-            matrix.push_back(lineMatrix);
-            lineMatrix.clear();
+
+            vector<vector<float>> matrix;
+            vector<float> lineMatrix;
+            int count = 0;
+            for(int i = 0; i<amountOfLineForSlaves; i++){
+                for (int j = 0; j < (stoi(A) + 1); j++) {
+                    lineMatrix.push_back(pref[count++]);
+                }
+                matrix.push_back(lineMatrix);
+                lineMatrix.clear();
+                
+            }
+            vector<pair<float,float>> maxsAndMins = getMaxsAndMinsInMatrix(matrix);
             
-        }
-        vector<pair<float,float>> maxsAndMins = getMaxsAndMinsInMatrix(matrix);
-        
-        for (int i = 0; i < stoi(M); i++) {
-            pair<int, int> hitAndMissIndexes = findIndexOfMiss(matrix,i);
-            for (int j = 0; j < stoi(A); j++) {
-                float hitPart = 0;
-                float missPart = 0;
-                if(hitAndMissIndexes.first != -1){
-                    hitPart = (abs(matrix[i][j] - matrix[hitAndMissIndexes.first][j]) / (maxsAndMins[j].second - maxsAndMins[j].first)) / stoi(M);
+            for (int i = 0; i < stoi(M); i++) {
+                pair<int, int> hitAndMissIndexes = findIndexOfMiss(matrix,i);
+                for (int j = 0; j < stoi(A); j++) {
+                    float hitPart = 0;
+                    float missPart = 0;
+                    if(hitAndMissIndexes.first != -1){
+                        hitPart = (abs(matrix[i][j] - matrix[hitAndMissIndexes.first][j]) / (maxsAndMins[j].second - maxsAndMins[j].first)) / stoi(M);
+                    }
+                    if(hitAndMissIndexes.second != -1) {
+                        missPart = (abs(matrix[i][j] - matrix[hitAndMissIndexes.second][j]) / (maxsAndMins[j].second - maxsAndMins[j].first)) / stoi(M);
+                    }
+                    W[j].first = W[j].first - hitPart + missPart;
                 }
-                if(hitAndMissIndexes.second != -1) {
-                    missPart = (abs(matrix[i][j] - matrix[hitAndMissIndexes.second][j]) / (maxsAndMins[j].second - maxsAndMins[j].first)) / stoi(M);
-                }
-                W[j].first = W[j].first - hitPart + missPart;
             }
+            
+            sort(W.rbegin(), W.rend());
+            
+            for (int i = 0; i < stoi(T); i++) {
+                weightIds[i] = W[i].second;
+            }
+
+            sort(weightIds, weightIds + stoi(T));
+            printSingleMatrix(weightIds,stoi(T),rank);
+
+            cout << "RANK: " << rank << " broadcasted "<< endl;
+            MPI_Bcast(&weightIds, stoi(T), MPI_INT, rank, MPI_COMM_WORLD); // broadcast
         }
-        
-        sort(W.rbegin(), W.rend());
-        // vector<float> weightIds;
-        int weightIds[stoi(T)];
-        for (int i = 0; i < stoi(T); i++) {
-            // weightIds.push_back(W[i].second);
-            weightIds[i] = W[i].second;
+
+        if(rank==0){
+            int result[slaveNumber * stoi(T)];
+            int count = 0;
+            for (int i = 1; i <= slaveNumber; i++) {
+                cout << "Before Fetching Broadcast  = " << i << endl;
+                MPI_Bcast(&weightIds, stoi(T), MPI_INT, i, MPI_COMM_WORLD); // broadcast
+                cout << "After Fetching Broadcast = " << i << endl;
+                for (int j = 0; j < stoi(T); j++) {
+                    result[count++] = weightIds[j];
+                }
+            }
+            sort(result, result + stoi(T) * slaveNumber);
+            printResult(result,stoi(T) * slaveNumber);
         }
-
-        sort(weightIds, weightIds + stoi(T));
-
-        // sort(weightIds.begin(), weightIds.end());
-        
-        // cout << "************** RANK: " << rank << "*****************" << endl;
-        printSingleMatrix(weightIds,stoi(T),rank);
-
-        // printVector(weightIds,rank);
-        // printVectorOfPairs(W);
-        // cout<<endl;
-    }
-
 
     
 
@@ -184,6 +192,16 @@ int main(int argc, char *argv[])
 void printMatrix(){
     for(int k=0; k<matrix.size(); k++){
             cout << matrix[k]<<" ";
+    }
+    cout<<endl;
+}
+
+void printResult(int matrix[], int size){
+    int pre = -1;
+    for(int k=0; k<size; k++){
+        if(pre == matrix[k]) continue;
+        pre = matrix[k];
+        cout << matrix[k] <<" ";
     }
     cout<<endl;
 }
