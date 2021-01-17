@@ -13,8 +13,9 @@ ifstream input;
 void printMatrix();
 void printArray(float arr[], int size, int lineSize);
 void printArrayTwo(vector<vector<float>> matrix);
-void printSingleMatrix(float matrix[], int size);
+void printSingleMatrix(int matrix[], int size,int rank);
 void printVectorOfPairs(vector<pair<float,float>> vectorOfPairs);
+void printVector(vector<float> vect,int rank);
 vector<pair<float,float>> getMaxsAndMinsInMatrix(vector<vector<float>> matrix);
 pair<int, int> findIndexOfMiss(vector<vector<float>> matrix, int index);
 int main(int argc, char *argv[])
@@ -82,7 +83,7 @@ int main(int argc, char *argv[])
 
 
     
-    if (rank == 5) {
+    if (rank != 0) {
         vector<pair<float, float>> W;
         // float W[stoi(A)]
         for (int i = 0; i < stoi(A); i++) {
@@ -101,15 +102,9 @@ int main(int argc, char *argv[])
             
         }
         vector<pair<float,float>> maxsAndMins = getMaxsAndMinsInMatrix(matrix);
-        for (int i = 0; i < maxsAndMins.size(); i++)
-        {
-            cout << "MAX MIN : " << maxsAndMins[i].first << " " << maxsAndMins[i].second << endl;
-        }
         
-        cout << endl;
         for (int i = 0; i < stoi(M); i++) {
             pair<int, int> hitAndMissIndexes = findIndexOfMiss(matrix,i);
-            cout << "HIT INDEX : " << hitAndMissIndexes.first << " - MISS INDEX : " << hitAndMissIndexes.second << endl;
             for (int j = 0; j < stoi(A); j++) {
                 float hitPart = 0;
                 float missPart = 0;
@@ -119,18 +114,28 @@ int main(int argc, char *argv[])
                 if(hitAndMissIndexes.second != -1) {
                     missPart = (abs(matrix[i][j] - matrix[hitAndMissIndexes.second][j]) / (maxsAndMins[j].second - maxsAndMins[j].first)) / stoi(M);
                 }
-                cout << "HIT RESULT : " << hitPart << " - MISS RESULT : " << missPart << endl;
                 W[j].first = W[j].first - hitPart + missPart;
-                // printSingleMatrix(W,stoi(A));
             }
-            cout << endl;
         }
         
-        // printArrayTwo(matrix);
-        cout << " A: " << stoi(A) << endl;
-        sort(W.begin(), W.end());
-        printVectorOfPairs(W);
-        // printSingleMatrix(W,stoi(A));
+        sort(W.rbegin(), W.rend());
+        // vector<float> weightIds;
+        int weightIds[stoi(T)];
+        for (int i = 0; i < stoi(T); i++) {
+            // weightIds.push_back(W[i].second);
+            weightIds[i] = W[i].second;
+        }
+
+        sort(weightIds, weightIds + stoi(T));
+
+        // sort(weightIds.begin(), weightIds.end());
+        
+        // cout << "************** RANK: " << rank << "*****************" << endl;
+        printSingleMatrix(weightIds,stoi(T),rank);
+
+        // printVector(weightIds,rank);
+        // printVectorOfPairs(W);
+        // cout<<endl;
     }
 
 
@@ -178,24 +183,30 @@ int main(int argc, char *argv[])
 
 void printMatrix(){
     for(int k=0; k<matrix.size(); k++){
-            cout << matrix[k]<<"\n";
-        }
+            cout << matrix[k]<<" ";
+    }
+    cout<<endl;
 }
 
-void printSingleMatrix(float matrix[], int size){
-    cout << "************ SINGLE MATRIX *****************" << endl;
+void printSingleMatrix(int matrix[], int size,int rank){
+    cout << "RANK: " << rank << " => ";
     for(int k=0; k<size; k++){
-        cout << matrix[k]<<"\n";
+        cout << matrix[k] <<" ";
     }
-    cout << "************ END OF SINGLE MATRIX *****************" << endl;
+    cout<<endl;
+}
+void printVector(vector<float> vect,int rank){
+    cout << "RANK: " << rank << " => ";
+    for(int k=0; k<vect.size(); k++){
+        cout << vect[k] <<" ";
+    }
+    cout<<endl;
 }
 
 void printVectorOfPairs(vector<pair<float,float>> vectorOfPairs){
-    cout << "************ SINGLE MATRIX *****************" << endl;
     for(int k=0; k<vectorOfPairs.size(); k++){
         cout << "FIRST: " << vectorOfPairs[k].first << " - SECOND: " << vectorOfPairs[k].second <<"\n";
     }
-    cout << "************ END OF SINGLE MATRIX *****************" << endl;
 }
 
 void printArray(float arr[], int size, int lineSize){
