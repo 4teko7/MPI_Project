@@ -18,7 +18,7 @@ void printVectorOfPairs(vector<pair<float,float>> vectorOfPairs);
 void printVector(vector<float> vect,int rank);
 void printResult(int matrix[], int size);
 vector<pair<float,float>> getMaxsAndMinsInMatrix(vector<vector<float>> matrix);
-pair<int, int> findIndexOfMiss(vector<vector<float>> matrix, int index);
+pair<int, int> findIndexOfHitAndMiss(vector<vector<float>> matrix, int index);
 
 int main(int argc, char *argv[])
 {
@@ -103,17 +103,19 @@ int main(int argc, char *argv[])
                 
             }
             vector<pair<float,float>> maxsAndMins = getMaxsAndMinsInMatrix(matrix);
+
+            // printVectorOfPairs(maxsAndMins);
             
             for (int i = 0; i < stoi(M); i++) {
-                pair<int, int> hitAndMissIndexes = findIndexOfMiss(matrix,i);
+                pair<int, int> hitAndMissIndexes = findIndexOfHitAndMiss(matrix,i);
                 for (int j = 0; j < stoi(A); j++) {
                     float hitPart = 0;
                     float missPart = 0;
                     if(hitAndMissIndexes.first != -1){
-                        hitPart = (abs(matrix[i][j] - matrix[hitAndMissIndexes.first][j]) / (maxsAndMins[j].second - maxsAndMins[j].first)) / stoi(M);
+                        hitPart = (fabs(matrix[i][j] - matrix[hitAndMissIndexes.first][j]) / (maxsAndMins[j].second - maxsAndMins[j].first)) / stoi(M);
                     }
                     if(hitAndMissIndexes.second != -1) {
-                        missPart = (abs(matrix[i][j] - matrix[hitAndMissIndexes.second][j]) / (maxsAndMins[j].second - maxsAndMins[j].first)) / stoi(M);
+                        missPart = (fabs(matrix[i][j] - matrix[hitAndMissIndexes.second][j]) / (maxsAndMins[j].second - maxsAndMins[j].first)) / stoi(M);
                     }
                     W[j].first = W[j].first - hitPart + missPart;
                 }
@@ -128,17 +130,36 @@ int main(int argc, char *argv[])
             sort(weightIds, weightIds + stoi(T));
             printSingleMatrix(weightIds,stoi(T),rank);
 
-            cout << "RANK: " << rank << " broadcasted "<< endl;
-            MPI_Bcast(&weightIds, stoi(T), MPI_INT, rank, MPI_COMM_WORLD); // broadcast
+            // cout << "RANK: " << rank << " broadcasted "<< endl;
+        // MPI_Bcast(&weightIds, stoi(T), MPI_INT, rank, MPI_COMM_WORLD); // broadcast
+        MPI_Send(
+                /* data         = */ &weightIds,
+                /* count        = */ stoi(T),
+                /* datatype     = */ MPI_INT,
+                /* destination  = */ 0,
+                /* tag          = */ 0,
+                /* communicator = */ MPI_COMM_WORLD);
         }
+        
+        MPI_Barrier(MPI_COMM_WORLD); // synchronizing processes
+
 
         if(rank==0){
             int result[slaveNumber * stoi(T)];
             int count = 0;
             for (int i = 1; i <= slaveNumber; i++) {
-                cout << "Before Fetching Broadcast  = " << i << endl;
-                MPI_Bcast(&weightIds, stoi(T), MPI_INT, i, MPI_COMM_WORLD); // broadcast
-                cout << "After Fetching Broadcast = " << i << endl;
+                // cout << "Before Fetching Broadcast  = " << i << endl;
+                // MPI_Bcast(&weightIds, stoi(T), MPI_INT, i, MPI_COMM_WORLD); // broadcast
+                MPI_Recv(
+                /* data         = */ &weightIds,
+                /* count        = */ stoi(T),
+                /* datatype     = */ MPI_INT,
+                /* source       = */ i,
+                /* tag          = */ 0,
+                /* communicator = */ MPI_COMM_WORLD,
+                /* status       = */ MPI_STATUS_IGNORE);
+
+                // cout << "After Fetching Broadcast = " << i << endl;
                 for (int j = 0; j < stoi(T); j++) {
                     result[count++] = weightIds[j];
                 }
@@ -181,7 +202,6 @@ int main(int argc, char *argv[])
     // ****************************************** //
 
 
-    MPI_Barrier(MPI_COMM_WORLD); // synchronizing processes
     MPI_Finalize();
 
     return 0;
@@ -223,7 +243,7 @@ void printVector(vector<float> vect,int rank){
 
 void printVectorOfPairs(vector<pair<float,float>> vectorOfPairs){
     for(int k=0; k<vectorOfPairs.size(); k++){
-        cout << "FIRST: " << vectorOfPairs[k].first << " - SECOND: " << vectorOfPairs[k].second <<"\n";
+        cout << vectorOfPairs[k].first << " " << vectorOfPairs[k].second <<"\n";
     }
 }
 
@@ -253,7 +273,7 @@ void printArrayTwo(vector<vector<float>> matrix){
 
 }
 
-pair<int, int> findIndexOfMiss(vector<vector<float>> matrix, int index){
+pair<int, int> findIndexOfHitAndMiss(vector<vector<float>> matrix, int index){
     float minOfHit = INT16_MAX;
     float minOfMiss = INT16_MAX;
     float sumOfHit = INT16_MAX;
@@ -264,11 +284,11 @@ pair<int, int> findIndexOfMiss(vector<vector<float>> matrix, int index){
     for (int i = 0; i < matrix.size(); i++) {
         float sumOfHitTmp = 0;
         float sumOfMissTmp = 0;
-        for (int j = 0; j < matrix.size(); j++) {
-            if(i != index && matrix[index][matrix[index].size() - 1] == matrix[i][matrix[index].size() - 1]) { //HIT
-                sumOfHitTmp += abs(matrix[index][j] -  matrix[i][j]);
-            } else if(i != index && matrix[index][matrix[index].size() - 1] != matrix[i][matrix[index].size() - 1]){ //MISS
-                sumOfMissTmp += abs(matrix[index][j] -  matrix[i][j]);
+        for (int j = 0; j < matrix[i].size(); j++) {
+            if(i != index && matrix[index][matrix[index].size() - 1] == matrix[i][matrix[i].size() - 1]) { //HIT
+                sumOfHitTmp += fabs(matrix[index][j] -  matrix[i][j]);
+            } else if(i != index && matrix[index][matrix[index].size() - 1] != matrix[i][matrix[i].size() - 1]){ //MISS
+                sumOfMissTmp += fabs(matrix[index][j] -  matrix[i][j]);
             }
         }
         if(sumOfHit > sumOfHitTmp && sumOfHitTmp != 0) {
