@@ -10,12 +10,7 @@
 using namespace std;
 vector<string> matrix;
 ifstream input;
-void printMatrix();
-void printArray(float arr[], int size, int lineSize);
-void printArrayTwo(vector<vector<float>> matrix);
 void printSingleMatrix(int matrix[], int size,int rank);
-void printVectorOfPairs(vector<pair<float,float>> vectorOfPairs);
-void printVector(vector<float> vect,int rank);
 void printResult(int matrix[], int size);
 vector<pair<float,float>> getMaxsAndMinsInMatrix(vector<vector<float>> matrix);
 pair<int, int> findIndexOfHitAndMiss(vector<vector<float>> matrix, int index);
@@ -34,13 +29,11 @@ int main(int argc, char *argv[])
         string P,N,A,M,T;
         string secondLine;
         string line;
-        // FILE *cin = fopen(argv[1], "r");
         input.open(argv[1]);
         getline(input, P); // P=number of processors
         getline(input, secondLine); // N=number of processors
         stringstream secondLineStream(secondLine);
         secondLineStream >> N >> A >> M >> T;
-        // cout << P << " " << N << " " << A << " " << M << " " << T << endl;
         int dataLineNumber = stoi(N);
         int slaveNumber = stoi(P) - 1;
         int amountOfLineForSlaves = dataLineNumber / slaveNumber;
@@ -48,7 +41,6 @@ int main(int argc, char *argv[])
         float pref[amountOfLineForSlaves * (stoi(A) + 1)];
         int weightIds[stoi(T) * slaveNumber];
     if(rank == 0){
-        
 
         for(int j = 0; j< dataLineNumber * (stoi(A) + 1) + amountOfLineForSlaves * (stoi(A) + 1);j++)
             arr[j]=0;
@@ -75,7 +67,6 @@ int main(int argc, char *argv[])
                     break;
                 }
             } while (ss);
-                // cout << endl;
 
         }
             input.close();
@@ -84,9 +75,8 @@ int main(int argc, char *argv[])
             MPI_Scatter(arr,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,pref,amountOfLineForSlaves * (stoi(A) + 1),MPI_FLOAT,0,MPI_COMM_WORLD);
 
 
-        if (rank != 0) {
+        if (rank == 2) {
             vector<pair<float, float>> W;
-            // float W[stoi(A)]
             for (int i = 0; i < stoi(A); i++) {
                 W.push_back(make_pair(0,i));
             }
@@ -104,8 +94,6 @@ int main(int argc, char *argv[])
             }
             vector<pair<float,float>> maxsAndMins = getMaxsAndMinsInMatrix(matrix);
 
-            // printVectorOfPairs(maxsAndMins);
-            
             for (int i = 0; i < stoi(M); i++) {
                 pair<int, int> hitAndMissIndexes = findIndexOfHitAndMiss(matrix,i);
                 for (int j = 0; j < stoi(A); j++) {
@@ -130,15 +118,13 @@ int main(int argc, char *argv[])
             sort(weightIds, weightIds + stoi(T));
             printSingleMatrix(weightIds,stoi(T),rank);
 
-            // cout << "RANK: " << rank << " broadcasted "<< endl;
-        // MPI_Bcast(&weightIds, stoi(T), MPI_INT, rank, MPI_COMM_WORLD); // broadcast
         MPI_Send(
-                /* data         = */ &weightIds,
-                /* count        = */ stoi(T),
-                /* datatype     = */ MPI_INT,
-                /* destination  = */ 0,
-                /* tag          = */ 0,
-                /* communicator = */ MPI_COMM_WORLD);
+            /* data         = */ &weightIds,
+            /* count        = */ stoi(T),
+            /* datatype     = */ MPI_INT,
+            /* destination  = */ 0,
+            /* tag          = */ 0,
+            /* communicator = */ MPI_COMM_WORLD);
         }
         
         MPI_Barrier(MPI_COMM_WORLD); // synchronizing processes
@@ -148,8 +134,6 @@ int main(int argc, char *argv[])
             int result[slaveNumber * stoi(T)];
             int count = 0;
             for (int i = 1; i <= slaveNumber; i++) {
-                // cout << "Before Fetching Broadcast  = " << i << endl;
-                // MPI_Bcast(&weightIds, stoi(T), MPI_INT, i, MPI_COMM_WORLD); // broadcast
                 MPI_Recv(
                 /* data         = */ &weightIds,
                 /* count        = */ stoi(T),
@@ -159,7 +143,6 @@ int main(int argc, char *argv[])
                 /* communicator = */ MPI_COMM_WORLD,
                 /* status       = */ MPI_STATUS_IGNORE);
 
-                // cout << "After Fetching Broadcast = " << i << endl;
                 for (int j = 0; j < stoi(T); j++) {
                     result[count++] = weightIds[j];
                 }
@@ -169,51 +152,12 @@ int main(int argc, char *argv[])
         }
 
     
-
-    // int pref[N]; // stores preferences of each // local disk on processors
-
-    // If it's master processor, reads from input file
-
-    // sends data from root array arr to pref array on each processor
-    // MPI_Scatter(arr,N,MPI_INT,pref,N,MPI_INT,0,MPI_COMM_WORLD);
-
-
-
-    // int masterSignal = 1;
-    // while(masterSignal){
-
-    //     if(rank!= 0){
-    //         int i = 0;
-    //         for(; i<N;i++){
-    //             printf("Process Numb %d and %d th element of my list is %d\n",rank,i+1,pref[i] );
-    //         }
-    //     }
-
-    //     if(rank==0){
-    //         masterSignal=0;
-    //     }
-
-    //     MPI_Bcast(&masterSignal, 1, MPI_INT, 0, MPI_COMM_WORLD); // broadcast
-
-
-    // }
-
-
     // ****************************************** //
 
 
     MPI_Finalize();
 
     return 0;
-}
-
-
-
-void printMatrix(){
-    for(int k=0; k<matrix.size(); k++){
-            cout << matrix[k]<<" ";
-    }
-    cout<<endl;
 }
 
 void printResult(int matrix[], int size){
@@ -233,45 +177,7 @@ void printSingleMatrix(int matrix[], int size,int rank){
     }
     cout<<endl;
 }
-void printVector(vector<float> vect,int rank){
-    cout << "RANK: " << rank << " => ";
-    for(int k=0; k<vect.size(); k++){
-        cout << vect[k] <<" ";
-    }
-    cout<<endl;
-}
 
-void printVectorOfPairs(vector<pair<float,float>> vectorOfPairs){
-    for(int k=0; k<vectorOfPairs.size(); k++){
-        cout << vectorOfPairs[k].first << " " << vectorOfPairs[k].second <<"\n";
-    }
-}
-
-void printArray(float arr[], int size, int lineSize){
-    cout << "*********************************************" << endl;
-    for(int k=0; k < size; k++){
-            cout << arr[k] << " ";
-        if((k + 1) % lineSize == 0)
-            cout<<endl;
-        }
-
-    cout << "*********************************************" << endl;
-
-}
-
-
-void printArrayTwo(vector<vector<float>> matrix){
-    cout << "*********************************************" << endl;
-    for(int i = 0; i<matrix.size();i++){
-        for(int j = 0; j< matrix[i].size();j++){
-            cout << matrix[i][j] << " ";
-        }
-        cout<<endl;
-    }
-
-    cout << "*********************************************" << endl;
-
-}
 
 pair<int, int> findIndexOfHitAndMiss(vector<vector<float>> matrix, int index){
     float minOfHit = INT16_MAX;
