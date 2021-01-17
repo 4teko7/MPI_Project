@@ -1,3 +1,11 @@
+/*
+Student Name: Bilal Tekin
+Student Number: 2017400264
+Compile Status: Compiling
+Program Status: Working
+Notes: Program is working as expected. Just compile, give parameters and run.
+*/
+
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
